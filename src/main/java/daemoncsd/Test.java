@@ -1,6 +1,6 @@
 package daemoncsd;
-import java.util.Arrays;
 
+import exceptions.CSDException;
 import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
@@ -87,7 +87,7 @@ public class Test {
 					}
                 	
                 }
-                catch (SerialPortException ex) {
+                catch (SerialPortException | CSDException ex) {
                     System.out.println(ex);
                 }
             }

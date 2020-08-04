@@ -3,6 +3,8 @@ package daemoncsd;
 import java.util.Arrays;
 import java.util.List;
 
+import exceptions.CSDException;
+
 public class CSDResponsePayloadParser {
 	
 	public CSDResponsePayloadParser() {}
@@ -12,18 +14,21 @@ public class CSDResponsePayloadParser {
 	private byte[] CSDcommandNumber;
 	private String response;
 	
-	public int[] parsePayload() {
-		System.out.println("CSDResponsePayloadParser" + this.toString());
-		String command = new String(CSDcommandNumber);
-		System.out.println("command" + command);
-		switch (command) {
-		case "3":
-		case "7":
-		case "17":
-			return parseReadResponse();
+	public int[] parsePayload() throws CSDException {
+		if (parseError().equals("OK")) {
+			System.out.println("CSDResponsePayloadParser" + this.toString());
+			String command = new String(CSDcommandNumber);
+			System.out.println("command" + command);
+			switch (command) {
+			case "3":
+			case "7":
+			case "17":
+				return parseReadResponse();
 
-		default:
-			break;
+			default:
+				break;
+			}
+			return null;
 		}
 		return null;
 	}
@@ -31,19 +36,33 @@ public class CSDResponsePayloadParser {
 	private int[] parseReadResponse() {
 		int[] result = new int[count];
 		List<String> res = Arrays.asList(response.split(" "));
-		System.out.println("resBefore" + res.toString());
 		res = res.subList(3 + CSDcommandNumber.length, res.size() - 5);  // remove "CSD" in begin and "{CRC}ENDD" in end
-		System.out.println("resAfter" + res.toString());
 		for(int i = 0; i < res.size(); i = i + 2) {
 			String currString = res.get(i) + res.get(i+1);
 			result[i/2] = Integer.parseInt(currString, 16);
-			System.out.println("currString" + currString + "|" + result[i/2] + "|" + "i=" + i);
 		}
 		return result;
 	}
-	
-	private void parseError() {
-		
+
+	private String parseError() throws CSDException {
+		if (response.substring(0, 14).equals("45 52 52 4F 52")) { // 45 52 52 4F 52 == ERROR
+			String errorCode = response.substring(15, 17);
+			switch (errorCode) {
+			case "30":
+				throw new CSDException("Неизвестная команда");
+			case "31":
+				throw new CSDException("Неверный формат команды");
+			case "32":
+				throw new CSDException("Неверная контрольная сумма");
+			case "35":
+				throw new CSDException("Ошибка записи flash памяти");
+			case "38":
+				throw new CSDException("Нет ответа от удаленного устройства");
+			default:
+				throw new CSDException("Неизвестная ошибка CSD");
+			}
+		}
+		return "OK";
 	}
 
 	public int getStartAddress() {
