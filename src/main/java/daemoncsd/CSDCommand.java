@@ -1,10 +1,12 @@
 package daemoncsd;
 
+import java.util.Arrays;
+
 import com.google.common.collect.ObjectArrays;
 
 public class CSDCommand {
 	
-	private Byte CSDcommandNumber;
+	private Byte[] CSDcommandNumber;
 	private Byte[] CSDcommandPayload;
 	private Byte[] CMD_COMMAND_PART;
     private final Byte[] END_PART = {'E', 'N', 'D', 0x0D};
@@ -12,10 +14,10 @@ public class CSDCommand {
     
     
     
-	public CSDCommand(Byte CSDcommandNumber, Byte[] CSDcommandPayload) {
-		this.CSDcommandNumber = CSDcommandNumber;
+	public CSDCommand(byte[] CSDcommandNumber, Byte[] CSDcommandPayload) {
+		this.CSDcommandNumber = Utils.toByteWrap(CSDcommandNumber);
 		this.CSDcommandPayload = CSDcommandPayload;
-		CMD_COMMAND_PART = new Byte[] {'C', 'M', 'D', CSDcommandNumber};
+		CMD_COMMAND_PART = ObjectArrays.concat(new Byte[] {'C', 'M', 'D'}, this.CSDcommandNumber, Byte.class);
 		this.CRC = getCRC();
 	}
 	
@@ -35,24 +37,19 @@ public class CSDCommand {
 		Byte[] swap;
 		swap = ObjectArrays.concat(CMD_COMMAND_PART, CSDcommandPayload , Byte.class);
 		swap = ObjectArrays.concat(swap, CRC);
-		swap = ObjectArrays.concat(swap, END_PART, Byte.class);
-		byte[] command = new byte[swap.length];
-		
-		for(int i=0; i < swap.length; i++) {
-			//System.out.println("CURR byte: " + swap[i]);
-			command[i] = swap[i].byteValue();
-		}
-		
+		swap = ObjectArrays.concat(swap, END_PART, Byte.class);	
+		byte[] command = Utils.toBytePrimitive(swap);
+
 		return command;
 	}
 
 
-	public Byte getCSDcommandNumber() {
+	public Byte[] getCSDcommandNumber() {
 		return CSDcommandNumber;
 	}
 
 
-	public void setCSDcommandNumber(Byte cSDcommandNumber) {
+	public void setCSDcommandNumber(Byte[] cSDcommandNumber) {
 		CSDcommandNumber = cSDcommandNumber;
 	}
 
@@ -65,6 +62,16 @@ public class CSDCommand {
 	public void setCSDcommandPayload(Byte[] cSDcommandPayload) {
 		CSDcommandPayload = cSDcommandPayload;
 	}
+
+
+	@Override
+	public String toString() {
+		return "CSDCommand [CSDcommandNumber=" + Arrays.toString(CSDcommandNumber) + ", CSDcommandPayload="
+				+ Arrays.toString(CSDcommandPayload) + ", CMD_COMMAND_PART=" + Arrays.toString(CMD_COMMAND_PART)
+				+ ", END_PART=" + Arrays.toString(END_PART) + ", CRC=" + CRC + "]";
+	}
+	
+	
 	
     
     

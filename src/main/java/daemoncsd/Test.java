@@ -1,4 +1,6 @@
 package daemoncsd;
+import java.util.Arrays;
+
 import jssc.SerialPort;
 import jssc.SerialPortEvent;
 import jssc.SerialPortEventListener;
@@ -7,6 +9,7 @@ import jssc.SerialPortException;
 public class Test {
 
     private static SerialPort serialPort;
+    static CSDResponsePayloadParser csdResponsePayloadParser;
 
     public static void main(String[] args) {
   
@@ -43,15 +46,23 @@ public class Test {
                     System.out.println("Data" + data);
                    
                     if (data.length() > 4 && data.substring(2, 4).equals("OK")) {
-                    	serialPort.writeString("SET_HERE_PHONENUMBER_REMOTEDEVICE" + "\r");
+                    	serialPort.writeString("ATD89805400316" + "\r");
 					}
                     if (data.length() > 14 && data.substring(2, 14).equals("CONNECT 9600")) {
-                    	Byte[] arr = new Byte[] {0 ,2, 1};
-                    	CSDCommand csdCommand = new CSDCommand("3".getBytes()[0], arr); 
+                    	int startAddress = 0x0011;
+                    	int count = 3;
+                    	String commandNumber = "3";
+                    	Byte[] arr = new Byte[] {0 , (byte) startAddress, (byte) count};
+                    	CSDCommand csdCommand = new CSDCommand(commandNumber.getBytes(), arr); 
                     	
                     	if (serialPort.removeEventListener()) {
                     		serialPort.addEventListener(new CSDPortReader(), SerialPort.MASK_RXCHAR);
                         	serialPort.writeBytes(csdCommand.getCommand());
+                        	csdResponsePayloadParser = new CSDResponsePayloadParser();
+                        	csdResponsePayloadParser.setStartAddress(startAddress);
+                        	csdResponsePayloadParser.setCount(count);
+                        	csdResponsePayloadParser.setCSDcommandNumber(commandNumber.getBytes());
+                        	
                     	}
                     }
                 }
@@ -65,10 +76,16 @@ public class Test {
     private static class CSDPortReader implements SerialPortEventListener {
     	
 		public void serialEvent(SerialPortEvent event) {
+			
             if(event.isRXCHAR() && event.getEventValue() > 0)	{
                 try {
                 	String data = serialPort.readHexString(event.getEventValue());
+                	csdResponsePayloadParser.setResponse(data);
                 	System.out.println("DataFromCSD" + data);
+                	for (int i : csdResponsePayloadParser.parsePayload()) {
+                		System.out.println("i:" + i);
+					}
+                	
                 }
                 catch (SerialPortException ex) {
                     System.out.println(ex);
